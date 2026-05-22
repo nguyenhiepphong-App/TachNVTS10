@@ -16,7 +16,7 @@ st.markdown("""
 * **File Input:** File Excel gốc tải ra từ hệ thống [ts10.phutho.edu.vn](https://ts10.phutho.edu.vn/)
 * **File Output:**
     * **File 1:** File Excel tách các cột Nguyện vọng (NV1 đến NV6, bổ sung cột Tổng NV và kẻ viền đồng bộ bảng dữ liệu).
-    * **File 2:** File Excel thống kê số lượng nguyện vọng đăng ký chi tiết theo từng đơn vị trường học (Ưu tiên xếp trường có NV1 cao nhất lên trước).
+    * **File 2:** File Excel thống kê số lượng nguyện vọng đăng ký chi tiết theo từng đơn vị trường học (Sắp xếp giảm dần từ NV1 đến NV6).
 ---
 """)
 
@@ -110,11 +110,12 @@ if uploaded_file is not None:
             c_cell.alignment = Alignment(horizontal="center", vertical="center")
             c_cell.border = border_style
 
-        # Sắp xếp đa tiêu chí: Ưu tiên Số NV1 giảm dần, tiếp theo xét Số NV2 giảm dần
+        # SỬA LẠI LOGIC THUẬT TOÁN SẮP XẾP:
+        # Sắp xếp ưu tiên giảm dần từ NV1, NV2, NV3, NV4, NV5, cho đến NV6.
+        # Dùng dấu trừ (-) trước số lượng để ép buộc Python xếp số lớn nhất lên trước một cách chính xác tuyệt đối.
         sorted_truong = sorted(
             thong_ke_data.items(), 
-            key=lambda x: (x[1][0], x[1][1]), 
-            reverse=True
+            key=lambda x: (-x[1][0], -x[1][1], -x[1][2], -x[1][3], -x[1][4], -x[1][5])
         )
 
         row_tk_idx = 2
