@@ -16,14 +16,16 @@ st.markdown("""
 uploaded_file = st.file_uploader("Chọn file Excel danh sách nguyện vọng gốc", type=["xlsx"])
 
 if uploaded_file is not None:
-    raw_df = pd.read_excel(uploaded_file, header=None)
+    # Đã sửa: Ép buộc dùng engine openpyxl tại đây để trị dứt điểm lỗi ImportError
+    raw_df = pd.read_excel(uploaded_file, header=None, engine='openpyxl')
+    
     header_row_idx = 0
     for idx, row in raw_df.iterrows():
         if row.astype(str).str.contains('Nguyện vọng|Họ và tên', case=False).any():
             header_row_idx = idx
             break
             
-    df = pd.read_excel(uploaded_file, skiprows=header_row_idx)
+    df = pd.read_excel(uploaded_file, skiprows=header_row_idx, engine='openpyxl')
     df.columns = [str(c).strip() for c in df.columns]
     
     col_hoten = next((c for c in df.columns if 'họ và tên' in c.lower() or 'hoten' in c.lower()), None)
@@ -64,4 +66,4 @@ if uploaded_file is not None:
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
     else:
-        st.error("Lỗi: Không tìm thấy cột 'Họ và tên' hoặc cột 'Nguyện vọng' trong file Excel của ông.")
+        st.error("Lỗi: Không tìm thấy cột 'Họ và tên' hoặc cột 'Nguyện vọng' trong file Excel của bạn.")
