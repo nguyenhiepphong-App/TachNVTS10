@@ -1,3 +1,10 @@
+Dưới đây là toàn bộ đoạn mã nguồn đã được khóa chặt logic: Bất kể hàng nào có dữ liệu ghi chú hay không, cứ tìm thấy vị trí tiêu đề cột "Ghi chú" là chèn ngay 7 cột mới (NV1 đến Tổng NV) vào vị trí kế tiếp, giúp bảng dữ liệu xuất ra luôn chuẩn khít, vuông vức và không bị lệch ô.
+
+Ông chỉ cần sao chép toàn bộ đoạn code này để dán đè vào file app.py trên GitHub nhé:
+
+Python
+
+
 import streamlit as st
 import openpyxl
 from openpyxl.styles import Border, Side, Alignment, Font
@@ -32,22 +39,33 @@ if uploaded_file is not None:
     
     header_row_idx = None
     col_nv_idx = None
+    col_ghichu_idx = None
     max_col = ws.max_column
     max_row = ws.max_row
 
+    # Bước 1: Quét tìm hàng tiêu đề, xác định vị trí cột Nguyện vọng và cột Ghi chú
     for r in range(1, min(40, max_row + 1)):
         for c in range(1, max_col + 1):
             val = str(ws.cell(row=r, column=c).value or '').lower()
             if 'nguyện vọng' in val or 'nguyenvong' in val:
                 header_row_idx = r
                 col_nv_idx = c
-                break
+            if 'ghi chú' in val or 'ghichu' in val:
+                col_ghichu_idx = c
         if header_row_idx:
             break
 
     if header_row_idx and col_nv_idx:
-        start_insert_col = max_col + 1
+        # CỐ ĐỊNH VỊ TRÍ TUYỆT ĐỐI: Cứ sau cột Ghi chú là chèn 7 cột mới (không phụ thuộc dữ liệu hàng)
+        if col_ghichu_idx:
+            start_insert_col = col_ghichu_idx + 1
+        else:
+            start_insert_col = col_nv_idx + 1
         
+        # Xác định chính xác tổng số cột cần quét kẻ viền sau khi đã cộng thêm 7 cột mới
+        total_columns_fixed = start_insert_col + 7 - 1
+
+        # Tạo tiêu đề cố định cho 7 cột mới
         new_headers = ["NV1", "NV2", "NV3", "NV4", "NV5", "NV6", "Tổng NV"]
         for i, h_text in enumerate(new_headers):
             cell = ws.cell(row=header_row_idx, column=start_insert_col + i)
@@ -59,6 +77,7 @@ if uploaded_file is not None:
         thong_ke_data = defaultdict(lambda: [0] * 6)
         count_processed = 0
 
+        # Duyệt từng hàng dữ liệu học sinh để bóc tách nguyện vọng
         for r in range(header_row_idx + 1, max_row + 1):
             nv_text_raw = ws.cell(row=r, column=col_nv_idx).value
             nv_text = str(nv_text_raw or '').strip()
@@ -69,8 +88,10 @@ if uploaded_file is not None:
             if nv_text_raw: 
                 count_processed += 1
 
+            # Ghi dữ liệu vào đúng vị trí 6 cột NV mới tính từ mốc cố định sau Ghi chú
             for index in range(6):
                 target_cell = ws.cell(row=r, column=start_insert_col + index)
+                
                 if index < total_nv:
                     line = lines[index]
                     match = re.match(r'^[\d\.]+\s*(.*)$', line)
@@ -79,19 +100,23 @@ if uploaded_file is not None:
                     target_cell.value = clean_nv
                     if clean_nv:
                         thong_ke_data[clean_nv][index] += 1
+                else:
+                    # Ghi đè ô trống để dọn dẹp sạch sẽ các cột ẩn hoặc dữ liệu rác cũ nếu có
+                    target_cell.value = ""
                 
                 target_cell.font = Font(name="Times New Roman", size=11)
                 target_cell.border = border_style
                 target_cell.alignment = Alignment(vertical="center", wrap_text=True)
 
+            # Ghi dữ liệu vào cột Tổng NV
             total_cell = ws.cell(row=r, column=start_insert_col + 6)
-            if nv_text_raw:
-                total_cell.value = total_nv
+            total_cell.value = total_nv if nv_text_raw else ""
             total_cell.font = Font(bold=True, name="Times New Roman", size=11)
             total_cell.border = border_style
             total_cell.alignment = Alignment(horizontal="center", vertical="center")
 
-            for c in range(1, start_insert_col):
+            # ĐỒNG BỘ: Kẻ đường viền đen khít toàn bộ bảng từ cột 1 đến hết cột Tổng NV
+            for c in range(1, total_columns_fixed + 1):
                 ws.cell(row=r, column=c).border = border_style
 
         output_ds = io.BytesIO()
@@ -110,9 +135,7 @@ if uploaded_file is not None:
             c_cell.alignment = Alignment(horizontal="center", vertical="center")
             c_cell.border = border_style
 
-        # SỬA LẠI LOGIC THUẬT TOÁN SẮP XẾP:
-        # Sắp xếp ưu tiên giảm dần từ NV1, NV2, NV3, NV4, NV5, cho đến NV6.
-        # Dùng dấu trừ (-) trước số lượng để ép buộc Python xếp số lớn nhất lên trước một cách chính xác tuyệt đối.
+        # Sắp xếp đa tiêu chí giảm dần từ NV1 đến NV6 (Trường nhiều NV1 lên đầu)
         sorted_truong = sorted(
             thong_ke_data.items(), 
             key=lambda x: (-x[1][0], -x[1][1], -x[1][2], -x[1][3], -x[1][4], -x[1][5])
@@ -140,6 +163,7 @@ if uploaded_file is not None:
             stt_counter += 1
             row_tk_idx += 1
 
+        # Dòng tổng kết cuối bảng thống kê
         ws_tk.cell(row=row_tk_idx, column=1, value="Tổng").font = Font(bold=True, name="Times New Roman", size=11)
         ws_tk.cell(row=row_tk_idx, column=1).alignment = Alignment(horizontal="center")
         ws_tk.cell(row=row_tk_idx, column=1).border = border_style
