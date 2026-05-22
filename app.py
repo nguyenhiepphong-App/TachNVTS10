@@ -1,10 +1,3 @@
-Dưới đây là toàn bộ đoạn mã nguồn đã được khóa chặt logic: Bất kể hàng nào có dữ liệu ghi chú hay không, cứ tìm thấy vị trí tiêu đề cột "Ghi chú" là chèn ngay 7 cột mới (NV1 đến Tổng NV) vào vị trí kế tiếp, giúp bảng dữ liệu xuất ra luôn chuẩn khít, vuông vức và không bị lệch ô.
-
-Ông chỉ cần sao chép toàn bộ đoạn code này để dán đè vào file app.py trên GitHub nhé:
-
-Python
-
-
 import streamlit as st
 import openpyxl
 from openpyxl.styles import Border, Side, Alignment, Font
